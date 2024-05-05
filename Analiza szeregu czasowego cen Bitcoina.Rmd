@@ -2,7 +2,12 @@
 title: "Analiza szeregu czasowego cen Bitcoin"
 author: "Maja Chrzan, Marek Falkowski, Dawid Kaszuba"
 date: "2024-05-05"
-output: html_document
+output: 
+  html_document:
+    toc: true # table of content true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    theme: united  # many options for theme, this one is my favorite.
+    highlight: tango  # specifies the syntax highlighting style
 ---
 
 ```{r setup, include=FALSE}
@@ -17,7 +22,6 @@ library(xts)
 library(readr)
 library(lubridate)
 ```
-
 
 ```{r, include=FALSE}
 setwd("C:\\Users\\dkasz\\Documents\\studia\\IV rok\\II semestr\\Narzędzia analizy czasu rzeczywistego\\project")
@@ -43,3 +47,50 @@ prices_ts <- ts(prices_close, start = c(2017, 08, 17, 04, 00, 00), frequency = 8
 summary(prices_ts)
 plot(prices_ts)
 ```
+# Cel Analizy
+
+<div style="text-align: justify;">
+  #todo
+</div>
+
+# Źródło danych, opis i charakterystyka
+
+<div style="text-align: justify;">
+  #todo
+</div>
+
+# Prezentacja graficzna zbioru danych
+
+<div style="text-align: justify;">
+  #todo
+</div>
+
+# Dobór metody analizy odpowiadającej celowi badania
+
+<div style="text-align: justify;">
+  #todo
+</div>
+
+# Analiza-interpretacja wyników
+
+<div style="text-align: justify;">
+  #todo
+</div>
+
+# Ocena jakości analizy
+
+<div style="text-align: justify;">
+  #todo
+</div>
+
+# Porównania wyników dla różnych zbiorów(szeregów) lub metod lub narzędzi
+
+<div style="text-align: justify;">
+  #todo
+</div>
+
+# Podsumowanie-wniosek
+
+<div style="text-align: justify;">
+  #todo
+</div>
