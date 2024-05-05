@@ -1,13 +1,13 @@
 ---
 title: "Analiza szeregu czasowego cen Bitcoin"
 author: "Maja Chrzan, Marek Falkowski, Dawid Kaszuba"
-date: "2024-05-05"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
 output: 
   html_document:
-    toc: true # table of content true
-    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
-    theme: united  # many options for theme, this one is my favorite.
-    highlight: tango  # specifies the syntax highlighting style
+    toc: true
+    toc_depth: 3
+    theme: cerulean
+    highlight: espresso
 ---
 
 ```{r setup, include=FALSE}
@@ -24,46 +24,40 @@ library(lubridate)
 ```
 
 ```{r, include=FALSE}
-setwd("C:\\Users\\dkasz\\Documents\\studia\\IV rok\\II semestr\\Narzędzia analizy czasu rzeczywistego\\project")
-```
-
-```{r, include=FALSE}
 prices <- read_csv("bitcoin_2017_to_2023_processed.csv")
-
-head(prices)
 ```
 
-```{r, include=FALSE}
-start_date <- as.POSIXct("2017-08-17 04:00:00", tz = "UTC")
-
-```
-
-
-```{r, warning=FALSE,  message=FALSE,}
-prices_close <- prices$mean_close
-
-prices_ts <- ts(prices_close, start = c(2017, 08, 17, 04, 00, 00), frequency = 8760) # 24h * 365 dni : a co z efektem kalendarzowym
-
-summary(prices_ts)
-plot(prices_ts)
+```{r, warning=FALSE,  message=FALSE}
+prices_ts <- ts(prices$mean_close, start = c(2017, 08, 17, 04, 00, 00), frequency = 8760) # 24h * 365 dni : a co z efektem kalendarzowym
 ```
 # Cel Analizy
 
 <div style="text-align: justify;">
-  #todo
+  <p>Celem analizy jest przewidywanie przyszłych cen Bitcoin na podstawie danych historycznych. Chcemy zidentyfikować wzorce i trendy w cenach Bitcoin oraz     wykorzystać je do prognozowania przyszłych cen.
+  </p>
 </div>
 
 # Źródło danych, opis i charakterystyka
 
 <div style="text-align: justify;">
-  #todo
+  Dane pochodzą ze strony internetowej: https://www.kaggle.com/datasets/jkraak/bitcoin-price-dataset?resource=download
 </div>
 
 # Prezentacja graficzna zbioru danych
 
 <div style="text-align: justify;">
-  #todo
+
 </div>
+
+```{r}
+head(prices)
+```
+
+
+```{r}
+plot(prices_ts)
+```
+
 
 # Dobór metody analizy odpowiadającej celowi badania
 
