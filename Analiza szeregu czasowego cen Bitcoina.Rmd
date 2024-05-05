@@ -1,0 +1,45 @@
+---
+title: "Analiza szeregu czasowego cen Bitcoin"
+author: "Maja Chrzan, Marek Falkowski, Dawid Kaszuba"
+date: "2024-05-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r, include=FALSE}
+library(tseries)
+library(dplyr)
+library(xts)
+library(readr)
+library(lubridate)
+```
+
+
+```{r, include=FALSE}
+setwd("C:\\Users\\dkasz\\Documents\\studia\\IV rok\\II semestr\\Narzędzia analizy czasu rzeczywistego\\project")
+```
+
+```{r, include=FALSE}
+prices <- read_csv("bitcoin_2017_to_2023_processed.csv")
+
+head(prices)
+```
+
+```{r, include=FALSE}
+start_date <- as.POSIXct("2017-08-17 04:00:00", tz = "UTC")
+
+```
+
+
+```{r, warning=FALSE,  message=FALSE,}
+prices_close <- prices$mean_close
+
+prices_ts <- ts(prices_close, start = c(2017, 08, 17, 04, 00, 00), frequency = 8760) # 24h * 365 dni : a co z efektem kalendarzowym
+
+summary(prices_ts)
+plot(prices_ts)
+```
