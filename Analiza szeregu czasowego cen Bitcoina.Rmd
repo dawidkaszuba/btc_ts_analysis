@@ -24,6 +24,10 @@ library(readr)
 library(lubridate)
 library(TSA)
 library(forecast)
+library(rugarch)
+library(readr)
+library(kableExtra)
+library(zoo)
 ```
 
 ```{r, include=FALSE}
@@ -34,7 +38,8 @@ data <- prices[order(prices$Start), ]
 
 
 ```{r}
-prices_ts <- ts(data$Close, start = c(2018, 1), end = c(2022,12), frequency = 365)
+prices_ts_xts <- xts(data$Close,data$Start)
+prices_training <- prices_ts_xts['2010-07-27/2012-12-31']
 ```
 
 # Cel Analizy
@@ -71,6 +76,7 @@ Celem niniejszej analizy jest zbadanie i zrozumienie charakterystyki jednowymiar
 
 ```{r}
 head(data)
+
 ```
 
 
@@ -82,8 +88,8 @@ Poniżej przedstawiono graficzną analizę danych dotyczących cen Bitcoina za o
 
 
 ```{r}
-plot(prices_ts,
-     main = "Ceny Bitcoina w latach 2018-2022",
+plot(prices_training,
+     main = "Ceny Bitcoina w latach 2010-2012",
      xlab = "",  
      ylab = "Cena [USD]")
 ```
@@ -95,10 +101,10 @@ plot(prices_ts,
 
 
 ```{r}
-Acf(prices_ts, main = "Autokorelacja Cen Bitcoina")
+acf(prices_training, main = "Autokorelacja Cen Bitcoina")
 ```
 ```{r}
-Pacf(prices_ts)
+Pacf(prices_training)
 ```
 <div>
 
@@ -109,29 +115,29 @@ Pacf(prices_ts)
 
 
 ```{r}
-btc_decomposed <- decompose(prices_ts, "multi")
-plot(btc_decomposed)
+attr(prices_training, 'frequency') <- 365  
+plot(decompose(as.ts(prices_training)))
 ```
 <div style="text-align: justify;">
   <p> 
-    Górny panel wykresu pokazuje oryginalny szereg czasowy cen Bitcoina. Widoczny jest ogólny wzrost       cen z kilkoma znaczącymi szczytami,
+    Górny panel wykresu pokazuje oryginalny szereg czasowy cen Bitcoina.Widać, że szereg czasowy ma wyraźny wzrost w okolicach  pkt 2.0 na osi czasu, po którym następuje spadek.
   </p>
   <p>
-    Drugi panel przedstawia komponent trendu, który wskazuje na długoterminowy wzorzec wzrostu cen         Bitcoina. Widzimy, że od początku 2018 roku do końca 2020 roku trend pozostaje stosunkowo płaski z     niewielkimi zmianami. Od 2020 roku trend zaczyna gwałtownie rosnąć, co wskazuje na znaczący wzrost     cen Bitcoina.
+    Wykres trendu pokazuje długoterminowy ruch w danych. Widać, że początkowo trend jest prawie poziomy, potem zaczyna rosnąć i osiąga szczyt w okolicach 2.2 na osi czasu. Po tym punkcie trend zaczyna spadać, a następnie znów się podnosi.
   </p>
   <p>
-    Trzeci panel pokazuje komponent sezonowy, który reprezentuje powtarzające się wzorce w danych.         Widzimy tutaj regularne wahania w skali rocznej, co sugeruje, że ceny Bitcoina mają pewne sezonowe     wzorce. Te wzorce mogą być związane z określonymi wydarzeniami lub cyklami na rynku kryptowalut.
+    Trzeci panel pokazuje komponent sezonowy, który reprezentuje powtarzające się wzorce w danych. Wykres sezonowy wykazuje wyraźne oscylacje, które sugerują powtarzalne wzorce.
   </p>
   <p>
-    Dolny panel przedstawia komponent losowy, który zawiera te elementy danych, które nie mogą być wyjaśnione przez komponenty trendu ani sezonowości. Mimo to, widać pewne wzorce, które mogą sugerować obecność dodatkowych sezonowych efektów lub innych regularności nie wychwyconych w pełni przez komponent sezonowy. Jest to wskazówka, że model mógł nie w pełni uchwycić całą strukturę sezonową w danych, co może wymagać bardziej zaawansowanych metod modelowania
+    Dolny panel przedstawia komponent losowy, który zawiera te elementy danych, które nie mogą być wyjaśnione przez komponenty trendu ani sezonowości. Mimo to, widać pewne wzorce, które mogą sugerować obecność dodatkowych sezonowych efektów lub innych regularności nie wychwyconych w pełni przez komponent sezonowy.
   </p>
 </div>
 
 
-## Wariancj dla poszczególnych miesięcy 
+## Wariancja dla poszczególnych miesięcy 
 
 ```{r}
-filtered_data <- subset(prices, Start >= as.Date("2018-01-01") & Start <= as.Date("2022-12-31"))
+filtered_data <- subset(prices, Start >= as.Date("2010-07-27") & Start <= as.Date("2012-12-31"))
 
 data_monthly <- split(filtered_data$Close, format(filtered_data$Start, "%Y-%m"))
 variances <- sapply(data_monthly, var)
@@ -142,7 +148,7 @@ axis(1, at = 1:length(variances), labels = names(variances))
   <p>
     Wykres pokazuje, że zmienność (wariancja) cen Bitcoina nie jest stała w czasie. Okresy wysokiej zmienności (2020-2021) są przeplatane okresami względnie niskiej zmienności (2018-2019, koniec 2021-2022).
     Szczyty wariancji wskazują na występowanie nagłych, dużych zmian cen. Te szoki mogą być wynikiem zewnętrznych wydarzeń lub fundamentalnych zmian na rynku kryptowalut.
-    Powyższy wykres świadczy o tym, że szereg czasowy w swojej pierwotnej wersji jest szeregiem niestacjinarnym.
+    Powyższy wykres świadczy o tym, że szereg czasowy w swojej pierwotnej wersji jest szeregiem niestacjonarnym.
   </p>
 <div>
 
@@ -152,31 +158,13 @@ axis(1, at = 1:length(variances), labels = names(variances))
 
 
 ```{r, warning=FALSE}
-adf.test(prices_ts)
+adf.test(prices_training)
 ```
 <p>
-Testowa statystyka Dickeya-Fullera (-1.9533) jest większa od wartości krytycznej na poziomie istotności 0.05. Oznacza to, że nie ma wystarczających dowodów, aby odrzucić hipotezę zerową (hipoteza o niestacjonarności) na rzecz hipotezy alternatywnej.
-Wartość p-wartości (0.5981) jest większa niż ustalony poziom istotności. Jest to dodatkowy dowód na to, że nie mamy podstaw, aby odrzucić hipotezę zerową.
+Testowa statystyka Dickeya-Fullera (-2.1212) jest większa od wartości krytycznej na poziomie istotności 0.05. Oznacza to, że nie ma wystarczających dowodów, aby odrzucić hipotezę zerową (hipoteza o niestacjonarności) na rzecz hipotezy alternatywnej.
 Zgodnie z alternatywną hipotezą, którą testuje test Dickeya-Fullera, wynik sugeruje, że szereg czasowy prices_ts jest niestacjonarny. W skrócie, wynik testu sugeruje, że nie ma wystarczających dowodów, aby odrzucić hipotezę o niestacjonarności szeregu czasowego.
 </p>
 
-
-<p>
-  W kolejnym kroku sprawdzono czy można łatwo pozbyć się niestacjonarności dla badanego szeregu czasowego poprzez różnicowanie, które wykonano najpierw z opóźnieniem równym , aby pozbyć się trendu a następnie z opóźnieniem równym 365 aby pozbyć się seznonowości. 
-</p>
-
-```{r}
-prices_diff <- diff(diff(prices_ts, lag = 1), lag = 365)
-```
-
-
-Sprawdzono czy szereg jest teraz stacjonarny
-```{r, warning=FALSE}
-adf.test(prices_diff)
-```
-<p>Ponieważ wartość p (0.01) jest mniejsza niż typowy poziom istotności, możemy odrzucić hipotezę zerową.
-
-Na podstawie testu ADF, możemy stwierdzić, że z dużym prawdopodobieństwem szereg czasowy po różnicowaniu jest stacjonarny.</p>
 
 
 ## Model ARIMA
@@ -184,7 +172,7 @@ Na podstawie testu ADF, możemy stwierdzić, że z dużym prawdopodobieństwem s
 
 1. **Analizę eksploracyjną danych (EDA):**
 
-Na podstawie analizy wariancji cen Bitcoina w okresie od stycznia 2018 roku do grudnia 2022 roku oraz testów stacjonarności, model ARIMA (AutoRegressive Integrated Moving Average) jest odpowiednim wyborem do dopasowania i prognozowania szeregów czasowych. Poniżej przedstawiono uzasadnienie tego wyboru:
+Na podstawie analizy wariancji cen Bitcoina w okresie od lipca 2010 roku do grudnia 2012 roku oraz testów stacjonarności, model ARIMA (AutoRegressive Integrated Moving Average) wydaje się być odpowiednim wyborem do dopasowania i prognozowania szeregów czasowych. Poniżej przedstawiono uzasadnienie tego wyboru:
 
 1. **Niestacjonarność Danych**:
     - Wykres wariancji wskazuje, że szereg czasowy cen Bitcoina w pierwotnej formie jest niestacjonarny. ARIMA jest skuteczny w modelowaniu niestacjonarnych danych poprzez zastosowanie różnicowania, co pozwala przekształcić niestacjonarny szereg czasowy w stacjonarny.
@@ -197,21 +185,33 @@ Na podstawie analizy wariancji cen Bitcoina w okresie od stycznia 2018 roku do g
 
 ### dopasowanie modelu
 
-```{r}
-arima_model <- auto.arima(prices_ts)
+```{r, include=TRUE}
+arima_model <- auto.arima(prices_training)
 summary(arima_model)
 ```
-- ME (Mean Error): Średni błąd prognoz. Tutaj wartość wynosi 0.397, co wskazuje na niewielki przeciętny błąd w prognozach
-- RMSE (Root Mean Square Error): Pierwiastek kwadratowy z średniego kwadratu błędu. Wynosi 19.54, co jest używane do oceny jakości prognoz modelu
-- MAE (Mean Absolute Error): Średnia bezwzględna różnica między prognozowanymi a rzeczywistymi wartościami. Wynosi 5.73, co wskazuje na przeciętny błąd prognoz
-- MPE (Mean Percentage Error): Średni procentowy błąd prognoz. Wynosi 0.38%, co wskazuje na średni procentowy błąd w prognozach
-- MAPE (Mean Absolute Percentage Error): Średnia bezwzględna procentowa różnica między prognozowanymi a rzeczywistymi wartościami. Wynosi 4.09%, co jest miarą względnego błędu prognoz
-- MASE (Mean Absolute Scaled Error): Skala średniej bezwzględnej różnicy. Wynosi 0.034, co wskazuje na mały błąd prognoz w skali
-- ACF1 (Autocorrelation of residuals at lag 1): Autokorelacja reszt z opóźnieniem 1. Wartość 0.0105 sugeruje, że nie ma znaczącej autokorelacji w resztach, co jest pożądane w dobrze dopasowanym modelu
 
-<div style="text-align: justify;">
-Model ARIMA(0,1,0) jest prostym modelem różnicującym, który dobrze dopasowuje się do danych po transformacji (różnicowaniu) w celu osiągnięcia stacjonarności. Miary błędu wskazują na umiarkowane błędy prognoz, a niskie wartości autokorelacji reszt sugerują, że model dobrze uchwycił struktury w danych. Wartości AIC i BIC sugerują, że model jest stosunkowo dobrze dopasowany przy umiarkowanej złożoności
-</div>
+Model ARIMA(2,1,2) 
+
+
+
+Statystyki Modelu:
+
+- sigma^2 = 0.3704 - Jest to estymowana wariancja błędu modelu. Niska wartość wskazuje na niską zmienność reszt modelu, co jest korzystne
+- log likelihood = -817.25 - Wartość logarytmu funkcji wiarygodności jest używana do oceny dopasowania modelu. Im bliżej zera, tym lepiej. Wartość ta sugeruje, że model dobrze pasuje do danych
+- AIC = 1644.49 - Kryterium informacyjne Akaike uwzględnia zarówno dopasowanie modelu, jak i jego złożoność. Im niższa wartość, tym lepiej
+- Niższe wartości AIC i BIC wskazują na lepsze dopasowanie modelu przy umiarkowanej złożoności. Wszystkie wartości są ujemne, co jest korzystne
+
+
+Miary błędu modelu:
+
+- ME (Mean Error) = 0.0153 - Średni błąd sugeruje, że przewidywania modelu są blisko rzeczywistych wartości
+- RMSE (Root Mean Squared Error): 0.6069 - Wartość ta jest miarą średniej różnicy między przewidywanymi a rzeczywistymi wartościami, wskazującą na dobrą jakość dopasowania modelu
+- MAE (Mean Absolute Error): 0.2341 - Średni błąd bezwzględny wskazuje na przeciętną wielkość błędu przewidywania modelu
+- MPE (Mean Percentage Error): 0.3517% - Średni błąd procentowy sugeruje, że przewidywania są blisko rzeczywistych wartości.
+- MAPE (Mean Absolute Percentage Error): 4.4191% - Średni bezwzględny błąd procentowy wskazuje na przeciętną wielkość odchylenia przewidywań od rzeczywistych wartości.
+- MASE (Mean Absolute Scaled Error): 0.0404 - Jest to ustandaryzowany średni błąd bezwzględny, który porównuje błąd modelu ARIMA z błędem modelu bazowego. Niska wartość sugeruje dobrą jakość modelu.
+- ACF1 (Autocorrelation Function): 0.0017 - Pierwszy współczynnik autokorelacji wskazuje na brak silnej korelacji między obserwacją, a obserwacją poprzednią.
+
 
 ### reszty modelu
 
@@ -222,20 +222,75 @@ acf(arima_model$residuals, main = "ACF reszt")
 pacf(arima_model$residuals, main = "PACF reszt")
 qqnorm(arima_model$residuals)
 qqline(arima_model$residuals)
+
+par(mfrow = c(1, 1))
+hist(arima_model$residuals, main="Histogram reszt modelu ARIMA")
 ```
 
+
+```{r}
+shapiro.test(arima_model$residuals)
+summary(arima_model$residuals)
+```
 <div style="text-align: justify;">
   <p>
-    Wykres reszt wskazuje, że model dobrze dopasowuje się do danych na początku, ale występują okresy zwiększonej zmienności, szczególnie po 2020 roku. Obecność wielu wartości ACF i PACF poza granicami istotności sugeruje, że model ARIMA(0,1,0) nie uchwycił wszystkich wzorców w danych. Wskazuje to na potrzebę dalszego dostosowania modelu
+    Wynik testu normalności Shapiro-Wilka sugeruje, że reszty modelu nie pochodzą z rozkładu normalnego, ponieważ p-value jest znacząco mniejsze niż poziom istotności 0.05. Oznacza to, że nie ma wystarczających dowodów na to, aby odrzucić hipotezę o nie-normalności rozkładu reszt.
   </p>
 </div>
 
 
-# Ocena jakości analizy
 
 <div style="text-align: justify;">
-  #todo
+  <p>
+     Histogram reszt sugeruje, że reszty są symetryczne i skupiają się wokół zera, ale mogą nie być idealnie normalnie rozłożone. Zarówno ACF, jak i PACF wskazują na obecność istotnych autokorelacji, co sugeruje, że model ARIMA nie uchwycił wszystkich wzorców w danych. Istotne autokorelacje mogą wskazywać na potrzebę bardziej złożonego model. Wykres Q-Q sugeruje, że reszty są zbliżone do rozkładu normalnego, ale obecność ekstremalnych wartości sugeruje, że mogą występować pewne nietypowe obserwacje
+  </p>
 </div>
+
+### prognozy
+
+```{r}
+
+
+prices_test <- prices_ts_xts['2013-01-01/2013-01-15']
+
+plot(prices_test, main="Dane rzeczywiste (zbiór testowy)")
+forecast_arima <- forecast(arima_model, h = 15)
+plot(forecast_arima, main="Prognoza 15-dniowa")
+```
+
+```{r}
+accuracy_df <- as.data.frame(accuracy(forecast_arima, prices_test))
+```
+```{r}
+kable(accuracy_df, caption = "Wyniki Funkcji `accuracy` dla Modelu ARIMA") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+### wyniki funkcji accuracy
+
+zbiór treningowy:
+
+- ME (Mean Error): 0.01530989 - Średni błąd sugeruje, że przewidywania modelu są blisko rzeczywistych wartości.
+- RMSE (Root Mean Squared Error): 0.6069270 - Wartość ta jest miarą średniej różnicy między przewidywanymi a rzeczywistymi wartościami, wskazującą na dobrą jakość dopasowania modelu
+- MAE (Mean Absolute Error): 0.2340858 - Średni błąd bezwzględny wskazuje na przeciętną wielkość błędu przewidywania modelu.
+- MPE (Mean Percentage Error): 0.3516784% - Średni błąd procentowy sugeruje, że przewidywania są blisko rzeczywistych wartości.
+- MAPE (Mean Absolute Percentage Error): 4.419052% - Średni bezwzględny błąd procentowy wskazuje na przeciętną wielkość odchylenia przewidywań od rzeczywistych wartości.
+- MASE (Mean Absolute Scaled Error): 1.042100 - Jest to ustandaryzowany średni błąd bezwzględny, który porównuje błąd modelu ARIMA z błędem modelu bazowego. Niska wartość sugeruje dobrą jakość modelu.
+- ACF1 (Autocorrelation Function): 0.00173673 - Pierwszy współczynnik autokorelacji wskazuje na brak silnej korelacji między obserwacją a obserwacją poprzednią.
+
+zbiór testowy:
+
+- ME (Mean Error): 0.27863654 - Średni błąd sugeruje, że przewidywania modelu dla zbioru testowego są nieco dalej od rzeczywistych wartości w porównaniu do zbioru treningowego.
+- RMSE (Root Mean Squared Error): 0.4618174 - Wartość ta jest miarą średniej różnicy między przewidywanymi a rzeczywistymi wartościami dla zbioru testowego.
+- MAE (Mean Absolute Error): 0.3622988 - Średni błąd bezwzględny wskazuje na przeciętną wielkość błędu przewidywania modelu dla zbioru testowego.
+- MPE (Mean Percentage Error): 1.9526791% - Średni błąd procentowy dla zbioru testowego sugeruje, że przewidywania są nieco dalej od rzeczywistych wartości w porównaniu do zbioru treningowego.
+- MAPE (Mean Absolute Percentage Error): 2.580064% - Średni bezwzględny błąd procentowy dla zbioru testowego wskazuje na przeciętną wielkość odchylenia przewidywań od rzeczywistych wartości.
+- MASE (Mean Absolute Scaled Error): 1.612878 - Jest to ustandaryzowany średni błąd bezwzględny dla zbioru testowego, który porównuje błąd modelu ARIMA z błędem modelu bazowego. Podobnie jak dla zbioru treningowego, niska wartość sugeruje dobrą jakość modelu.
+
+<div style="text-align: justify;">
+  Analiza dokładności modelu ARIMA dla zbioru treningowego i testowego wskazuje na ogólnie dobre dopasowanie modelu do danych, ze stosunkowo niskimi błędami prognozowania. Jednak musimy zauważyć, że błędy dla zbioru testowego są nieco wyższe niż dla zbioru treningowego, co może sugerować, że model może mieć pewne trudności w generalizacji na nowe dane.
+</div>
+
 
 # Porównania wyników dla różnych zbiorów(szeregów) lub metod lub narzędzi
 
