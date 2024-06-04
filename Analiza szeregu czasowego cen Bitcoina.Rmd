@@ -162,7 +162,7 @@ adf.test(prices_training)
 ```
 <p>
 Testowa statystyka Dickeya-Fullera (-2.1212) jest większa od wartości krytycznej na poziomie istotności 0.05. Oznacza to, że nie ma wystarczających dowodów, aby odrzucić hipotezę zerową (hipoteza o niestacjonarności) na rzecz hipotezy alternatywnej.
-Zgodnie z alternatywną hipotezą, którą testuje test Dickeya-Fullera, wynik sugeruje, że szereg czasowy prices_ts jest niestacjonarny. W skrócie, wynik testu sugeruje, że nie ma wystarczających dowodów, aby odrzucić hipotezę o niestacjonarności szeregu czasowego.
+Zgodnie z alternatywną hipotezą, którą testuje test Dickeya-Fullera, wynik sugeruje, że szereg czasowy jest niestacjonarny. W skrócie, wynik testu sugeruje, że nie ma wystarczających dowodów, aby odrzucić hipotezę o niestacjonarności szeregu czasowego.
 </p>
 
 
