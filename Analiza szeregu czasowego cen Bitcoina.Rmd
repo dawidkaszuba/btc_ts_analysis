@@ -41,14 +41,13 @@ prices_ts_xts <- xts(data$Close,data$Start)
 prices_training <- prices_ts_xts['2010-07-27/2012-12-31']
 ```
 
-# Cel Analizy
+# Cel Analizy (Kaszuba)
 
 
 Celem niniejszej analizy jest zbadanie i zrozumienie charakterystyki jednowymiarowego szeregu czasowego cen Bitcoina. Analiza będzie obejmować:
 
-1. **Analizę eksploracyjną danych (EDA):**
+1. **Analizę eksploracyjną danych:**
     - Wizualizacja danych, aby zrozumieć ogólny trend, sezonowość i potencjalne anomalie w cenach Bitcoina.
-    - Statystyczne podsumowanie danych, w tym średnia, mediana, odchylenie standardowe i inne istotne miary.
 
 2. **Dekompozycję szeregu czasowego:**
     - Rozkład szeregu na komponenty trendu, sezonowości i losowe (residualne) za pomocą klasycznej dekompozycji.
@@ -58,14 +57,14 @@ Celem niniejszej analizy jest zbadanie i zrozumienie charakterystyki jednowymiar
 
 4. **Modelowanie i prognozowanie:**
     - Wybór odpowiedniego modelu do prognozowania przyszłych cen Bitcoina.
-    - Ocena dokładności modelu prognozowania za pomocą metryk błędu prognozy (np. RMSE, MAE).
+    - Ocena dokładności modelu prognozowania za pomocą metryk błędu prognozy
 
 5. **Interpretacja wyników:**
     - Wnioskowanie na podstawie wyników analizy i modelowania, w tym zrozumienie wpływu różnych czynników na zmienność cen Bitcoina.
 
 
 
-# Źródło danych, opis i charakterystyka
+# Źródło danych, opis i charakterystyka (Kaszuba)
 
 <div style="text-align: justify;">
   <p>Dane pochodzą ze strony internetowej: https://www.kaggle.com/datasets/priyamchoksi/bitcoin-historical-prices-and-activity-2010-2024. Struktura badanego pliku wygląda następująco:
@@ -79,10 +78,10 @@ head(data)
 ```
 
 
-# Prezentacja graficzna zbioru danych
+# Prezentacja graficzna zbioru danych (Kaszuba)
 
 <div style="text-align: justify;">
-Poniżej przedstawiono graficzną analizę danych dotyczących cen Bitcoina za okres od stycznia 2018 roku do grudnia 2022 roku. Na wykresie obserwacjemy ogólny trend wzrostowy, można doszukać się również sezonowych wzorców czy nawet anomalii.
+Poniżej przedstawiono graficzną analizę danych dotyczących cen Bitcoina za okres od lipca 2010 roku do grudnia 2012 roku. Na wykresie obserwacjemy ogólny trend wzrostowy, można doszukać się również sezonowych wzorców czy nawet anomalii.
 </div>
 
 
@@ -96,7 +95,7 @@ plot(prices_training,
 # Analiza-interpretacja wyników
 
 
-## Interpretacja funkcji acf oraz pacf
+## Interpretacja funkcji acf oraz pacf (Chrzan)
 
 
 ```{r}
@@ -105,13 +104,24 @@ acf(prices_training, main = "Autokorelacja Cen Bitcoina")
 ```{r}
 Pacf(prices_training)
 ```
-<div>
-
-   tu interpretacja funkcji acf i pacf
-   
+<div style="text-align: justify;">
+  <p> 
+  Autokorelacje są wysokie i stopniowo maleją w miarę wzrostu opóźnienia, nie spadając szybko do zera, co sugeruje, że ceny Bitcoina wykazują długookresową zależność z obecnością długoterminowych trendów lub sezonowości w danych. Wiedząc, że linie przerywane oznaczają granice krytyczne dla istotności statystycznej, większość wartości autokorelacji jest powyżej owych granic 95%, co oznacza, że autokorelacje są statystycznie istotne.
+  </p>
+  <p> 
+  Dla częściowej autokorelacji, pierwsza wartość częściowej autokorelacji jest blisko 1, co oznacza silną bezpośrednią zależność między cenami z okresu t i t-1. Kolejne wartości PACF spadają szybko do zera i większość z nich mieści się w granicach krytycznych, co sugeruje, że większość istotnej autokorelacji w danych można wyjaśnić przez zależności z pierwszym opóźnieniem. Brak istotnych wartości PACF dla wyższych opóźnień sugeruje, że dalsze opóźnienia nie wnoszą dodatkowych informacji poza tym, co jest wyjaśniane przez pierwsze opóźnienie.
+  </p>
+  <p> Wnioski z wykresów:</p>
+  <p>
+  Biorąc pod uwagę wyniki ACF i PACF, dobrym wyborem dla modelu ARIMA może być model z jednym opóźnieniem w części autoregresyjnej (AR) i bez opóźnień w części różnicującej (I) oraz średniej ruchomej (MA), czyli model ARIMA(1,0,0). Jednak byłby to model prosty, który mógłby nie uchwycić wszystkich wzorców. Dobrym pomysłem będzie wtczttabue wartiści kryteriów informacyjnych AIC/BIC dla bardziej złożonego modelu. Dodatkowo wysokie wartości ACF mogą sugerować obecność trendów lub sezonowości w danych, co należy wziąć pod uwagę przy dalszym modelowaniu.
+  </p>
+  <p>
+  Chociaż ACF pokazuje wysokie autokorelacje na wyższych opóźnieniach, PACF wskazuje, że te korelacje mogą być wyjaśnione przez pierwsze opóźnienie. Jeśli zależy nam na modelowaniu zmienności cen, warto rozważyć model GARCH, który lepiej uchwyci zmienność w czasie.
+  </p>
 </div>
 
 
+## Dekomozycja (Kaszuba)
 
 ```{r}
 attr(prices_training, 'frequency') <- 365  
@@ -133,7 +143,7 @@ plot(decompose(as.ts(prices_training)))
 </div>
 
 
-## Wariancja dla poszczególnych miesięcy 
+## Wariancja dla poszczególnych miesięcy (Kaszuba)
 
 ```{r}
 filtered_data <- subset(prices, Start >= as.Date("2010-07-27") & Start <= as.Date("2012-12-31"))
@@ -145,7 +155,7 @@ axis(1, at = 1:length(variances), labels = names(variances))
 ```
 <div style="text-align: justify;">
   <p>
-    Wykres pokazuje, że zmienność (wariancja) cen Bitcoina nie jest stała w czasie. Okresy wysokiej zmienności (2020-2021) są przeplatane okresami względnie niskiej zmienności (2018-2019, koniec 2021-2022).
+    Wykres pokazuje, że zmienność (wariancja) cen Bitcoina nie jest stała w czasie. Okresy wysokiej zmienności są przeplatane okresami względnie niskiej zmienności.
     Szczyty wariancji wskazują na występowanie nagłych, dużych zmian cen. Te szoki mogą być wynikiem zewnętrznych wydarzeń lub fundamentalnych zmian na rynku kryptowalut.
     Powyższy wykres świadczy o tym, że szereg czasowy w swojej pierwotnej wersji jest szeregiem niestacjonarnym.
   </p>
@@ -153,7 +163,7 @@ axis(1, at = 1:length(variances), labels = names(variances))
 
 
 
-## Test stacjonarności Dickeya-Fullera
+## Test stacjonarności Dickeya-Fullera (Kaszuba)
 
 
 ```{r, warning=FALSE}
@@ -166,12 +176,12 @@ Zgodnie z alternatywną hipotezą, którą testuje test Dickeya-Fullera, wynik s
 
 
 
-## Model ARIMA
+## Model ARIMA (Kaszuba)
 
 
 1. **Analizę eksploracyjną danych (EDA):**
 
-Na podstawie analizy wariancji cen Bitcoina w okresie od lipca 2010 roku do grudnia 2012 roku oraz testów stacjonarności, model ARIMA (AutoRegressive Integrated Moving Average) wydaje się być odpowiednim wyborem do dopasowania i prognozowania szeregów czasowych. Poniżej przedstawiono uzasadnienie tego wyboru:
+Na podstawie analizy wariancji cen Bitcoina w okresie od lipca 2010 roku do grudnia 2012 roku, testów stacjonarności, przeprowadzonej dekompozycji klasycznej model ARIMA (AutoRegressive Integrated Moving Average) wydaje się być odpowiednim wyborem do dopasowania i prognozowania powyższego szeregu czasowego. Poniżej przedstawiono uzasadnienie tego wyboru:
 
 1. **Niestacjonarność Danych**:
     - Wykres wariancji wskazuje, że szereg czasowy cen Bitcoina w pierwotnej formie jest niestacjonarny. ARIMA jest skuteczny w modelowaniu niestacjonarnych danych poprzez zastosowanie różnicowania, co pozwala przekształcić niestacjonarny szereg czasowy w stacjonarny.
@@ -182,23 +192,33 @@ Na podstawie analizy wariancji cen Bitcoina w okresie od lipca 2010 roku do grud
 3. **Elastyczność Modelu**:
     - Model ARIMA łączy autoregresję (AR), różnicowanie (I) i średnią ruchomą (MA), co daje dużą elastyczność w dopasowywaniu różnych typów szeregów czasowych. Może uchwycić zarówno krótkoterminowe zależności, jak i długoterminowe trendy po odpowiednich transformacjach.
 
-### dopasowanie modelu
+### dopasowanie modelu (Kaszuba)
+
+Model bez przekształceń ze względu na występującą zmienną wariancję
 
 ```{r, include=TRUE}
 arima_model <- auto.arima(prices_training)
 summary(arima_model)
 ```
+Model z przekształceniami ze względu na występującą zmienną wariancję:
 
-Model ARIMA(2,1,2) 
+```{r, include=TRUE}
+arima_model_lambda <- auto.arima(prices_training, lambda="auto")
+summary(arima_model_lambda)
+```
+
+
+
+Wybrano pierwszą wersję modelu ARIMA(2,1,2) 
 
 
 
 Statystyki Modelu:
 
-- sigma^2 = 0.3704 - Jest to estymowana wariancja błędu modelu. Niska wartość wskazuje na niską zmienność reszt modelu, co jest korzystne
+- sigma^2 = 0.3704 - Jest to szacowana wariancja błędu modelu. Niska wartość wskazuje na niską zmienność reszt modelu, co jest korzystne
 - log likelihood = -817.25 - Wartość logarytmu funkcji wiarygodności jest używana do oceny dopasowania modelu. Im bliżej zera, tym lepiej. Wartość ta sugeruje, że model dobrze pasuje do danych
 - AIC = 1644.49 - Kryterium informacyjne Akaike uwzględnia zarówno dopasowanie modelu, jak i jego złożoność. Im niższa wartość, tym lepiej
-- Niższe wartości AIC i BIC wskazują na lepsze dopasowanie modelu przy umiarkowanej złożoności. Wszystkie wartości są ujemne, co jest korzystne
+- Niższe wartości AIC i BIC wskazują na lepsze dopasowanie modelu przy umiarkowanej złożoności.
 
 
 Miary błędu modelu:
@@ -212,7 +232,7 @@ Miary błędu modelu:
 - ACF1 (Autocorrelation Function): 0.0017 - Pierwszy współczynnik autokorelacji wskazuje na brak silnej korelacji między obserwacją, a obserwacją poprzednią.
 
 
-### reszty modelu
+### reszty modelu (Kaszuba)
 
 ```{r}
 par(mfrow = c(2, 2))
@@ -223,7 +243,15 @@ qqnorm(arima_model$residuals)
 qqline(arima_model$residuals)
 
 par(mfrow = c(1, 1))
-hist(arima_model$residuals, main="Histogram reszt modelu ARIMA")
+residuals <- arima_model$residuals
+mean_residuals <- mean(residuals)
+sd_residuals <- sd(residuals)
+
+hist(residuals, breaks=30, freq=FALSE, main="Histogram reszt modelu ARIMA", xlab="Reszty")
+
+x_vals <- seq(min(residuals), max(residuals), length=150)
+y_vals <- dnorm(x_vals, mean=mean_residuals, sd=sd_residuals)
+lines(x_vals, y_vals, col="blue", lwd=2)
 ```
 
 
@@ -245,12 +273,15 @@ summary(arima_model$residuals)
   </p>
 </div>
 
-### prognozy
+### prognozy (Kaszuba)
+
+Wydaje się, że wybrany model ARIMA nie jest do końca dobrze dopasowny, jednak spróbujemy wykonać prognozy.
 
 ```{r}
 
 
 prices_test <- prices_ts_xts['2013-01-01/2013-01-15']
+prices_test_31 <- prices_ts_xts['2013-01-01/2013-01-31']
 
 plot(prices_test, main="Dane rzeczywiste (zbiór testowy)")
 forecast_arima <- forecast(arima_model, h = 15)
@@ -261,11 +292,23 @@ plot(forecast_arima, main="Prognoza 15-dniowa")
 accuracy_df <- as.data.frame(accuracy(forecast_arima, prices_test))
 ```
 ```{r}
-kable(accuracy_df, caption = "Wyniki Funkcji `accuracy` dla Modelu ARIMA") %>%
+kable(accuracy_df, caption = "Wyniki Funkcji `accuracy` dla Modelu ARIMA - 15 dni") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
 ```
 
-### wyniki funkcji accuracy
+```{r}
+forecast_arima_31 <- forecast(arima_model, h = 31)
+plot(forecast_arima_31, main="Prognoza 31-dniowa")
+```
+```{r}
+accuracy_df_31 <- as.data.frame(accuracy(forecast_arima_31, prices_test_31))
+```
+```{r}
+kable(accuracy_df_31, caption = "Wyniki Funkcji `accuracy` dla Modelu ARIMA - 31 dni") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+### wyniki funkcji accuracy dla prognozy 15 dniowej (Kaszuba)
 
 zbiór treningowy:
 
@@ -290,11 +333,22 @@ zbiór testowy:
   Analiza dokładności modelu ARIMA dla zbioru treningowego i testowego wskazuje na ogólnie dobre dopasowanie modelu do danych, ze stosunkowo niskimi błędami prognozowania. Jednak musimy zauważyć, że błędy dla zbioru testowego są nieco wyższe niż dla zbioru treningowego, co może sugerować, że model może mieć pewne trudności w generalizacji na nowe dane.
 </div>
 
+<div style="text-align: justify;">
+  Widać również, że wybrany model nie radzi sobie z większym horyzontem prognoz, a błędy dla zbioru testowego są jeszcze większe niż w przypadku horyzontu 15 dniowego.
+</div>
 
-# Porównania wyników dla różnych zbiorów(szeregów) lub metod lub narzędzi
+
+# Porównania wyników dla różnych zbiorów (szeregów) lub metod lub narzędzi
 
 <div style="text-align: justify;">
-  #todo
+<p>(Kaszuba)</p>
+  W analizie porównano dwa modele ARIMA(2,1,2) zastosowane do zbioru treningowego "prices_training". Pierwszy model nie uwzględniał transformacji Box-Coxa, podczas gdy drugi model ją zastosował.
+
+Pierwszy model ARIMA wykazał znaczące wartości parametrów autoregresji i średniej ruchomej, co sugeruje, że dobrze odwzorowuje strukturę danych. Estymowana wariancja błędu w tym modelu była niska, co jest pozytywnym wskaźnikiem, ponieważ niska zmienność reszt oznacza lepsze dopasowanie modelu. Logarytm funkcji wiarygodności oraz wartości kryteriów AIC i BIC również wskazywały na lepsze dopasowanie tego modelu w porównaniu do drugiego. Miary błędów prognozowania, takie jak średni błąd (ME), średni błąd kwadratowy (RMSE), średni błąd bezwzględny (MAE) i średni bezwzględny błąd procentowy (MAPE), były niskie, co potwierdza, że model dobrze przewiduje wartości czasowe.
+
+Drugi model ARIMA, który zastosował transformację Box-Coxa, wprowadził pewne zmiany w wartościach współczynników. Jednak estymowana wariancja błędu była wyższa, co sugeruje gorsze dopasowanie. Wyższe wartości log likelihood, AIC i BIC w porównaniu do pierwszego modelu również wskazywały na słabsze dopasowanie. Miary błędów prognozowania były wyższe, co sugeruje, że ten model jest mniej dokładny.
+
+W ostatecznym rozrachunku, wybrano pierwszy model ARIMA(2,1,2) bez transformacji Box-Coxa, ponieważ lepiej dopasowuje się do danych i ma niższe błędy prognozowania.  Mimo dobrego dopasowania do danych treningowych, model miał pewne trudności z generalizacją na nowe dane, co wskazywały nieco wyższe błędy dla zbioru testowego. Ogólnie rzecz biorąc, model ARIMA bez transformacji okazał się bardziej odpowiedni do prognozowania tego szeregu czasowego.
 </div>
 
 # Podsumowanie-wniosek
